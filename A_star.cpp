@@ -6,8 +6,8 @@
 using namespace std;
 
 struct Priority_Queue {
-	// A priority queue achieved by min heap used to hold nodes in exploring queue, which could achieve extracking node 
-	// with least priority in O(log(n)) of time complexity, where n is the number of nodes in queue
+  //  A priority queue achieved by min heap used to hold nodes in exploring queue, which could achieve extracking node 
+  //  with least priority in O(log(n)) of time complexity, where n is the number of nodes in queue
 	typedef pair<int, pair<int, int>> element;
 	priority_queue<element, vector<element>, greater<element>> elements;
 
@@ -24,6 +24,7 @@ struct Priority_Queue {
 		elements.pop();
 		return minP;
 	}
+
 };
 
 struct pair_hash {
@@ -43,7 +44,8 @@ class discrete_planner {
   public:
   	discrete_planner () {};
 
-  	vector<pair<int, int>> optimal_planner (vector<vector<int>> & world_state, pair<int, int> & robot_pose, pair<int, int> & goal_pose) { 
+  	vector<pair<int, int>> optimal_planner (vector<vector<int>> & world_state, pair<int, int> & robot_pose, 
+																						pair<int, int> & goal_pose) { 
       // Optimal planner achieved by A* Algorithm
   		x_d = world_state.size();
   		y_d = world_state[0].size();
@@ -60,7 +62,7 @@ class discrete_planner {
   		cost[robot_pose] = 0;
 
       // Hold nodes that has already been visited and record their parent nodes
-  		unordered_map<pair<int, int>, pair<int, int>, pair_hash> parent; 
+      unordered_map<pair<int, int>, pair<int, int>, pair_hash> parent; 
 
   		while (!frontier.empty()) {
         // Get and visit nodes with least priority
@@ -82,11 +84,13 @@ class discrete_planner {
   					parent[neighbor] = cur;
   				}
   			}
+
   		}
   		return path;
   	}
 
-  	vector<pair<int, int>> generate_path(pair<int, int> goal, pair<int, int> start, unordered_map<pair<int, int>, pair<int, int>, pair_hash> & parent) {
+  	vector<pair<int, int>> generate_path(pair<int, int> goal, pair<int, int> start, unordered_map<pair<int, int>, 
+																				 pair<int, int>, pair_hash> & parent) {
       // Track back to get path from robot pose to goal pose
   		vector<pair<int, int>> path;
   		path.push_back(goal);
@@ -108,9 +112,10 @@ class discrete_planner {
   	}
 
   	vector<pair<int, int>> find_neighbor(pair<int, int> cur, vector<vector<int>> & world_state) {
-      // Find possbile neightbor nodes
-  		vector<pair<int, int>> NS;
-  		vector<pair<int, int>> neighbors = {{cur.first+1, cur.second}, {cur.first-1, cur.second}, {cur.first, cur.second+1}, {cur.first, cur.second-1}};
+    // Find possbile neightbor nodes
+      vector<pair<int, int>> NS;
+  		vector<pair<int, int>> neighbors = {{cur.first+1, cur.second}, {cur.first-1, cur.second}, 
+																					{cur.first, cur.second+1}, {cur.first, cur.second-1}};
   		for (auto n: neighbors) {
   			if (verify_node(n, world_state)) NS.push_back(n);
   		}
@@ -118,19 +123,18 @@ class discrete_planner {
   	}
 
   	int cal_heuristic(pair<int, int> cur, pair<int, int> goal) {
-      // Calculate Manhatten distance between node and goal_pose
-  		return abs(cur.first - goal.first) + abs(cur.second - goal.second);
+    // Calculate Manhatten distance between node and goal_pose
+      return abs(cur.first - goal.first) + abs(cur.second - goal.second);
   	}
 };
 
 void generate_obstacle(vector<vector<int>>& world_state, int x_d, int y_d) {
   // generate obstacle in world graph
   for (int i = 0; i < y_d / 5 * 4; i++)
-    world_state[x_d / 10 * 4 - 1][i] = 1;
+      world_state[x_d / 10 * 4 - 1][i] = 1;
 
   for (int i = y_d / 5; i < y_d; i++)
-    world_state[x_d / 10 * 6 - 1][i] = 1;
-
+      world_state[x_d / 10 * 6 - 1][i] = 1;
 }
 
 int main () {
@@ -140,10 +144,12 @@ int main () {
     world_state[i].resize(y_d);
   generate_obstacle(world_state, x_d, y_d);
   pair<int, int> robot_pose = {5, 5};
-  pair<int, int> goal_pose = {45, 45};  
-	discrete_planner DP;
-	vector<pair<int, int>> path = DP.optimal_planner(world_state, robot_pose, goal_pose);
-  for (auto p: path)
+  pair<int, int> goal_pose = {45, 45};
+  discrete_planner DP;
+  vector<pair<int, int>> path = DP.optimal_planner(world_state, robot_pose, goal_pose);
+  for (auto p: path) {
       cout << p.first << " " << p.second << endl;
-	return 0;
+  }
+  return 0;
 }
+
