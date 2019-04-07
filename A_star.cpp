@@ -45,44 +45,44 @@ class discrete_planner {
 
   	vector<pair<int, int>> optimal_planner (vector<vector<int>> & world_state, pair<int, int> & robot_pose, 
 						pair<int, int> & goal_pose) { 
-      	// Optimal planner achieved by A* Algorithm
+      		// Optimal planner achieved by A* Algorithm
   		x_d = world_state.size();
   		y_d = world_state[0].size();
 
-      	// Final generated path
+      		// Final generated path
   		vector<pair<int, int>> path = {};
 
-      	// Hold and extract node in exploring queue
+      		// Hold and extract node in exploring queue
   		Priority_Queue frontier;
   		frontier.push(0, robot_pose);
 
-  	// Record nodes and their distances from start pose
+  		// Record nodes and their distances from start pose
       		unordered_map<pair<int, int>, int, pair_hash> cost;
   		cost[robot_pose] = 0;
 
-      	// Hold nodes that has already been visited and record their parent nodes
+      		// Hold nodes that has already been visited and record their parent nodes
       		unordered_map<pair<int, int>, pair<int, int>, pair_hash> parent; 
 
   		while (!frontier.empty()) {
-        	// Get and visit nodes with least priority
+        		// Get and visit nodes with least priority
   			auto cur = frontier.pop();
 
-  		// If reach goal pose, track back to get path
-        	if (cur == goal_pose)
-  			path = generate_path(cur, robot_pose, parent);
+  			// If reach goal pose, track back to get path
+        		if (cur == goal_pose)
+  				path = generate_path(cur, robot_pose, parent);
 
-  		// Find neighbor nodes of current nodes
-        	vector<pair<int, int>> neighbors = find_neighbor(cur, world_state);
-  			for (auto neighbor: neighbors) {
-  				int new_cost = cost[cur] + 1;
-          			// No need to explore node that has been visited or its cost doesn't need to be updated
-  				if (parent.find(neighbor) == parent.end() || new_cost < cost[neighbor]) {
-  					cost[neighbor] = new_cost;
-  					int priority = new_cost + cal_heuristic(cur, goal_pose);
-  					frontier.push(priority, neighbor);
-  					parent[neighbor] = cur;
+  			// Find neighbor nodes of current nodes
+        		vector<pair<int, int>> neighbors = find_neighbor(cur, world_state);
+  				for (auto neighbor: neighbors) {
+  					int new_cost = cost[cur] + 1;
+          				// No need to explore node that has been visited or its cost doesn't need to be updated
+  					if (parent.find(neighbor) == parent.end() || new_cost < cost[neighbor]) {
+  						cost[neighbor] = new_cost;
+  						int priority = new_cost + cal_heuristic(cur, goal_pose);
+  						frontier.push(priority, neighbor);
+  						parent[neighbor] = cur;
+  					}
   				}
-  			}
 
   		}
   		return path;
@@ -90,7 +90,7 @@ class discrete_planner {
 
   	vector<pair<int, int>> generate_path(pair<int, int> goal, pair<int, int> start, 
 					     unordered_map<pair<int, int>, pair<int, int>, pair_hash> & parent) {
-      	// Track back to get path from robot pose to goal pose
+      		// Track back to get path from robot pose to goal pose
   		vector<pair<int, int>> path;
   		path.push_back(goal);
   		auto node = parent[goal];
@@ -104,14 +104,14 @@ class discrete_planner {
   	}
 
   	bool verify_node(pair<int, int> cur, vector<vector<int>> & world_state) {
-      	// Verify node whether reachable or not, if node is out of range of world_state or in obstacle, it can not be reached
+      		// Verify node whether reachable or not, if node is out of range of world_state or in obstacle, it can not be reached
   		if (cur.first >= 0 && cur.first < x_d && cur.second >= 0 && cur.second < y_d && !world_state[cur.first][cur.second])
   			return true;
   		else return false;
   	}
 
   	vector<pair<int, int>> find_neighbor(pair<int, int> cur, vector<vector<int>> & world_state) {
-    	// Find possbile neightbor nodes
+    		// Find possbile neightbor nodes
       		vector<pair<int, int>> NS;
   		vector<pair<int, int>> neighbors = {{cur.first+1, cur.second}, {cur.first-1, cur.second},
 						    {cur.first, cur.second+1}, {cur.first, cur.second-1}};
@@ -122,7 +122,7 @@ class discrete_planner {
   	}
 
   	int cal_heuristic(pair<int, int> cur, pair<int, int> goal) {
-    	// Calculate Manhatten distance between node and goal_pose
+    		// Calculate Manhatten distance between node and goal_pose
       		return abs(cur.first - goal.first) + abs(cur.second - goal.second);
   	}
 };
