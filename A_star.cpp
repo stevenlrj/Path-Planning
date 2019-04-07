@@ -6,8 +6,8 @@
 using namespace std;
 
 struct Priority_Queue {
-  //  A priority queue achieved by min heap used to hold nodes in exploring queue, which could achieve extracking node 
-  //  with least priority in O(log(n)) of time complexity, where n is the number of nodes in queue
+	// A priority queue achieved by min heap used to hold nodes in exploring queue, which could achieve extracking node 
+	// with least priority in O(log(n)) of time complexity, where n is the number of nodes in queue
 	typedef pair<int, pair<int, int>> element;
 	priority_queue<element, vector<element>, greater<element>> elements;
 
@@ -24,11 +24,10 @@ struct Priority_Queue {
 		elements.pop();
 		return minP;
 	}
-
 };
 
 struct pair_hash {
-  // method for pair hash
+  // Method for pair hash
 	template <class T1, class T2> 
 	size_t operator() (const pair<T1, T2> & p) const {
 		size_t h1 = hash<T1>()(p.first);
@@ -83,7 +82,6 @@ class discrete_planner {
   					parent[neighbor] = cur;
   				}
   			}
-
   		}
   		return path;
   	}
