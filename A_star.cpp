@@ -2,153 +2,175 @@
 #include <queue>
 #include <unordered_map>
 #include <algorithm>
+#include <math.h>
 using namespace std;
 
 struct Priority_Queue {
-  	// A priority queue achieved by min heap used to hold nodes in exploring queue, 
-	// which could achieve extracking node with least priority in O(log(n)) of time complexity,
-	// where n is the number of nodes in queue
-	typedef pair<int, pair<int, int>> element;
-	priority_queue<element, vector<element>, greater<element>> elements;
+  	// Priority Queue implemented by pair and priority_queue to hold nodes in exploring queue, which could achieve extracting node 
+  	// with least priority and inserting new node in O(log(n)) of time complexity, where n is the number of nodes in queue
+  	typedef pair<double, pair<int, int>> node;
+  	priority_queue<node, vector<node>, greater<node>> nodeQueue;
 
-	bool empty() {
-		return elements.empty();
-	}
+  	bool empty() {
+    	return nodeQueue.empty();
+  	}
 
-	void push(int priority, pair<int, int> node) {
-		elements.emplace(priority, node);
-	}
+  	void push(double priority, pair<int, int> pos) {
+     	nodeQueue.emplace(priority, pos);
+  	}
 
-	pair<int, int> pop() {
-		auto minP = elements.top().second;
-		elements.pop();
-		return minP;
-	}
+  	pair<int, int> pop() {
+    	auto minNodePos = nodeQueue.top().second;
+    	nodeQueue.pop();
+    	return minNodePos;
+  	}
 };
 
 struct pair_hash {
   	// Method for pair hash
-	template <class T1, class T2> 
-	size_t operator() (const pair<T1, T2> & p) const {
-		size_t h1 = hash<T1>()(p.first);
-		size_t h2 = hash<T2>()(p.second);
-		return h1 ^ h2;
-	}
+  	template <class T1, class T2> 
+  	size_t operator() (const pair<T1, T2> & p) const {
+    	size_t h1 = hash<T1>()(p.first);
+    	size_t h2 = hash<T2>()(p.second);
+    	return h1 ^ h2;
+  	}
 };
 
-class discrete_planner {
-  	// Search methods for discrete motion planner, optimal planner achieved by A* algorithm
-	int x_d;   // range in x dimension
-	int y_d;   // range in y dimension
+class Search {
+  	// Search methods for path planner
+  private:
+  	int x_range; 
+  	int y_range;
+  	int robot_size;
   public:
-  	discrete_planner () {};
+  	vector<pair<int, int>> A_star (vector<vector<int>> & world_state, pair<int, int> & robot_pose, pair<int, int> & goal_pose, vector<vector<int>> & obs_list, int rs) { 
+    	// Optimal planner achieved by A* Algorithm
+    	x_range = world_state.size();
+    	y_range = world_state[0].size();
+    	robot_size = rs;
 
-  	vector<pair<int, int>> optimal_planner (vector<vector<int>> & world_state, pair<int, int> & robot_pose, 
-						pair<int, int> & goal_pose) { 
-      		// Optimal planner achieved by A* Algorithm
-  		x_d = world_state.size();
-  		y_d = world_state[0].size();
+    	// Final generated path
+    	vector<pair<int, int>> path = {};
 
-      		// Final generated path
-  		vector<pair<int, int>> path = {};
+    	// Exploring queue
+    	Priority_Queue frontier;
+    	frontier.push(0.0, robot_pose);
 
-      		// Hold and extract node in exploring queue
-  		Priority_Queue frontier;
-  		frontier.push(0, robot_pose);
+    	// Record nodes and their costs from start pose
+    	unordered_map<pair<int, int>, double, pair_hash> cost;
+    	cost[robot_pose] = 0.0;
 
-  		// Record nodes and their distances from start pose
-      		unordered_map<pair<int, int>, int, pair_hash> cost;
-  		cost[robot_pose] = 0;
+    	// Record visitted nodes and their parents
+    	unordered_map<pair<int, int>, pair<int, int>, pair_hash> parent; 
 
-      		// Hold nodes that has already been visited and record their parent nodes
-      		unordered_map<pair<int, int>, pair<int, int>, pair_hash> parent; 
+    	while (!frontier.empty()) {
+      		// Extract and visit nodes with least priority
+      		auto cur = frontier.pop();
 
-  		while (!frontier.empty()) {
-        		// Get and visit nodes with least priority
-  			auto cur = frontier.pop();
+      		// If we reach goal pose, track back to get path
+      		if (cur == goal_pose)
+        		path = generate_path(cur, robot_pose, parent);
 
-  			// If reach goal pose, track back to get path
-        		if (cur == goal_pose)
-  				path = generate_path(cur, robot_pose, parent);
+      		// Get possible next step movements of current node
+      		vector<pair<int, int>> motions = get_robot_motion(cur, obs_list);
+      		for (auto motion: motions) {
+        		double new_cost = cost[cur] + cal_dis(cur, motion);
+        		// No need to explore node that has been visited or its cost doesn't need to be updated
+        		if (parent.find(motion) == parent.end() || new_cost < cost[motion]) {
+          			cost[motion] = new_cost;
+          			double priority = new_cost + cal_heuristic(motion, goal_pose);
+          			frontier.push(priority, motion);
+          			parent[motion] = cur;
+        		}
+      		}
+    	}
+    	return path;
+  }
 
-  			// Find neighbor nodes of current nodes
-        		vector<pair<int, int>> neighbors = find_neighbor(cur, world_state);
-  				for (auto neighbor: neighbors) {
-  					int new_cost = cost[cur] + 1;
-          				// No need to explore node that has been visited or its cost doesn't need to be updated
-  					if (parent.find(neighbor) == parent.end() || new_cost < cost[neighbor]) {
-  						cost[neighbor] = new_cost;
-  						int priority = new_cost + cal_heuristic(cur, goal_pose);
-  						frontier.push(priority, neighbor);
-  						parent[neighbor] = cur;
-  					}
-  				}
-
-  		}
-  		return path;
+  	vector<pair<int, int>> generate_path(pair<int, int> goal, pair<int, int> start, unordered_map<pair<int, int>, pair<int, int>, pair_hash> & parent) {
+    	// Track back to get path from robot pose to goal pose
+    	vector<pair<int, int>> path;
+    	path.push_back(goal);
+    	auto node = parent[goal];
+    	while (node != start) {
+      		path.push_back(node);
+      		node = parent[node];
+    	}
+    	path.push_back(start);
+    	reverse(path.begin(), path.end());
+    	return path;
   	}
 
-  	vector<pair<int, int>> generate_path(pair<int, int> goal, pair<int, int> start, 
-					     unordered_map<pair<int, int>, pair<int, int>, pair_hash> & parent) {
-      		// Track back to get path from robot pose to goal pose
-  		vector<pair<int, int>> path;
-  		path.push_back(goal);
-  		auto node = parent[goal];
-  		while (node != start) {
-  			path.push_back(node);
-  			node = parent[node];
-  		}
-  		path.push_back(start);
-  		reverse(path.begin(), path.end());
-  		return path;
-  	}
+  	vector<pair<int, int>> get_robot_motion(pair<int, int> cur, vector<vector<int>> & obs_list) {
+  		// Robot motion model
+    	int x;
+  		int y;
+    	vector<pair<int, int>> next_step;
+    	vector<pair<int, int>> robot_motion = {{1, 0}, {0, 1}, {-1, 0}, {0, -1}, {-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
 
-  	bool verify_node(pair<int, int> cur, vector<vector<int>> & world_state) {
-      		// Verify node whether reachable or not, if node is out of range of world_state or in obstacle, it can not be reached
-  		if (cur.first >= 0 && cur.first < x_d && cur.second >= 0 && cur.second < y_d && !world_state[cur.first][cur.second])
-  			return true;
-  		else return false;
-  	}
+    	for (auto motion: robot_motion) {
+    		x = cur.first + motion.first;
+    		y = cur.second + motion.second;
+    		if (verify_node(x, y) and ! check_collision(x, y, obs_list))
+    			next_step.emplace_back(x, y);
+    	}
+    	return next_step;
+    }
 
-  	vector<pair<int, int>> find_neighbor(pair<int, int> cur, vector<vector<int>> & world_state) {
-    		// Find possbile neightbor nodes
-      		vector<pair<int, int>> NS;
-  		vector<pair<int, int>> neighbors = {{cur.first+1, cur.second}, {cur.first-1, cur.second},
-						    {cur.first, cur.second+1}, {cur.first, cur.second-1}};
-  		for (auto n: neighbors) {
-  			if (verify_node(n, world_state)) NS.push_back(n);
-  		}
-  		return NS;
-  	}
+    bool verify_node(int x, int y) {
+    	// Verify whether a node is in the range of world
+    	if (x >= 0 && x < x_range && y >= 0 && y < y_range)
+    		return true;
+    	else 
+    		return false;
+    }
 
-  	int cal_heuristic(pair<int, int> cur, pair<int, int> goal) {
-    		// Calculate Manhatten distance between node and goal_pose
-      		return abs(cur.first - goal.first) + abs(cur.second - goal.second);
+    bool check_collision(int x, int y, vector<vector<int>> & obs_list) {
+    	// Check if node get collision with obstacle, take into consideration about robot size
+    	for (auto obs: obs_list) {
+    		if (x >= obs[0] - robot_size and x < obs[1] + robot_size and y >= obs[2] - robot_size and y < obs[3] + robot_size)
+    			return true;
+    	}
+    	return false;
+    }
+
+    double cal_dis(pair<int, int> cur, pair<int, int> node) {
+    	// Calculate distance between two nodes
+    	return sqrt(pow((cur.first - node.first), 2) + pow((cur.second - node.second), 2));
+    }
+
+  	double cal_heuristic(pair<int, int> cur, pair<int, int> goal) {
+    	// Calculate distance between node and goal_pose as heuristic
+    	return pow((cur.first - goal.first), 2) + pow((cur.second - goal.second), 2);
   	}
 };
 
-void generate_obstacle(vector<vector<int>>& world_state, int x_d, int y_d) {
-	// generate obstacle in world graph
-  	for (int i = 0; i < y_d / 5 * 4; i++)
-      		world_state[x_d / 10 * 4 - 1][i] = 1;
 
-  	for (int i = y_d / 5; i < y_d; i++)
-      		world_state[x_d / 10 * 6 - 1][i] = 1;
-}
+int main() {
+	// Parameter initialization
+	int x_range = 50, y_range = 50;
+  	int robot_size = 3;
 
-int main () {
-  	int x_d = 50, y_d = 50;
-  	vector<vector<int>> world_state(x_d);
-  	for (int i = 0; i < x_d ; i++ )
-    	world_state[i].resize(y_d);
-  	generate_obstacle(world_state, x_d, y_d);
+  	// World graph generation
+  	vector<vector<int>> world_state(x_range);
+  	for (int i = 0; i < x_range ; i++ )
+    	world_state[i].resize(y_range);
+
+    // Obstacles generation
+    vector<vector<int>> obs_list = {{0, x_range, 0, 1}, {0, x_range, y_range - 1, y_range}, {0, 1, 0, y_range}, {x_range - 1, x_range, 0, y_range}};
+    obs_list.push_back({15, 16, 0, 30});
+    obs_list.push_back({35, 36, 20, 50});
+
+    // Initialize robot pose and goal pose
   	pair<int, int> robot_pose = {5, 5};
-  	pair<int, int> goal_pose = {45, 45};
-  	discrete_planner DP;
-  	vector<pair<int, int>> path = DP.optimal_planner(world_state, robot_pose, goal_pose);
-  	for (auto p: path) {
-      	cout << p.first << " " << p.second << endl;
-  	}
+  	pair<int, int> goal_pose = {x_range - 5, y_range - 5};
+
+  	// Run optimal planner
+  	Search search;
+  	vector<pair<int, int>> path = search.A_star(world_state, robot_pose, goal_pose, obs_list, robot_size);
+  	if (!path.empty()) 
+  		cout << "Optimal search succeed!" << endl;
+  	else 
+  		cout << "No optimal path is found!" << endl;
   	return 0;
 }
-
